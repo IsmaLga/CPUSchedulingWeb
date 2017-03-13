@@ -50,7 +50,15 @@
                 <input type="number" id="st" placeholder="Service time"/>
               </div>
             </div>
-            <p><center><a id="save-process" class="btn btn-primary" role="button">Save process</a></center></p>
+            <div class="row">
+              <div class="col-md-6">
+                <p><center><a id="save-process" class="btn btn-primary" role="button">Save process</a></center></p>
+              </div>
+              <div class="col-md-6">
+                <p><center><a id="empty-process" class="btn btn-primary" role="button">Empty processes</a></center></p>
+              </div>
+            </div>
+
             <div class="row">
               <div class="col-md-12">
                 <center><h2><b>Scheduler kind</b></h2></center>
@@ -167,17 +175,46 @@ $(document).ready(function(){
       "searching": false
   });
 
+  if($('#kind').val() == 'rr'){
+    $('#quantum').show();
+  }
+  else{
+    $('#quantum').hide();
+  }
+
   $('#save-process').on('click',function(){
     name = $('#name').val();
     bt = $('#st').val();
-    process = [
-              name
-              ,parseInt(bt),
-              getRandomColor()
-              ];
-    processes.push(process);
+    if(name && bt){
+      process = [
+        name
+        ,parseInt(bt),
+        getRandomColor()
+      ];
+      processes.push(process);
+      $('#notify').empty();
+      $('#notify').append('<div class="alert alert-success"><center><strong>¡Process ' + name + ' created!</center></strong></div>');
+    }
+    else if(!name && !bt){
+      $('#notify').empty();
+      $('#notify').append('<div class="alert alert-danger"><center><strong>The fields process name and service time are required</center></strong></div>');
+    }
+    else if(!name){
+      $('#notify').empty();
+      $('#notify').append('<div class="alert alert-danger"><center><strong>The field process name is required</center></strong></div>');
+    }
+    else if(!bt){
+      $('#notify').empty();
+      $('#notify').append('<div class="alert alert-danger"><center><strong>The field service time is required</center></strong></div>');
+    }
+  });
+
+  $('#empty-process').on('click',function(){
+    cleanValues(process_table);
+    processes = [];
+    processescustom = [];
     $('#notify').empty();
-    $('#notify').append('<div class="alert alert-success"><center><strong>Proceso ' + name + ' agregado</center></strong></div>');
+    $('#notify').append('<div class="alert alert-success"><center><strong>¡List of processes emptied successfully!</center></strong></div>');
   });
 
   $('#kind').on('change',function(){
@@ -187,31 +224,48 @@ $(document).ready(function(){
     else{
       $('#quantum').hide();
     }
-    $('#twt').html("");
-    $('#awt').html("");
-    $('#ttat').html("");
-    $('#atat').html("");
-    $('#trou').html("");
-    $('#timeline').html("");
-    process_table.rows().remove().draw();
+    cleanValues(process_table);
   });
 
   $('#get').on('click',function(){
-    processescustom = copy(processes);
-    if($('#kind').val() === 'fcfs'){
-      process_table.rows().remove().draw();
-      scheduler(process_table,'fcfs',processescustom);
+    if(processes.length > 0){
+      processescustom = copy(processes);
+      if($('#kind').val() === 'fcfs'){
+        process_table.rows().remove().draw();
+        scheduler(process_table,'fcfs',processescustom);
+      }
+      else if($('#kind').val() === 'sjf') {
+        process_table.rows().remove().draw();
+        scheduler(process_table,'sjf',processescustom);
+      }
+      else if($('#kind').val() === 'rr') {
+        var quantum = $('#quantuminput').val();
+        if(quantum){
+          process_table.rows().remove().draw();
+          rr(process_table,quantum,processescustom);
+        }
+        else {
+          $('#notify').empty();
+          $('#notify').append('<div class="alert alert-danger"><center><strong>The field quantum is required</center></strong></div>');
+        }
+      }
     }
-    else if($('#kind').val() === 'sjf') {
-      process_table.rows().remove().draw();
-      scheduler(process_table,'sjf',processescustom);
-    }
-    else if($('#kind').val() === 'rr') {
-      process_table.rows().remove().draw();
-      rr(process_table,'rr',processescustom);
+    else{
+      $('#notify').empty();
+      $('#notify').append('<div class="alert alert-danger"><center><strong>There are no processes added</center></strong></div>');
     }
   });
 });
+
+function cleanValues(process_table){
+  $('#twt').html("");
+  $('#awt').html("");
+  $('#ttat').html("");
+  $('#atat').html("");
+  $('#trou').html("");
+  $('#timeline').html("");
+  process_table.rows().remove().draw();
+}
 
 function getRandomColor() {
     var letters = '0123456789ABCDEF';
@@ -291,9 +345,9 @@ function scheduler(process_table, kind, processesm){
   $('#timeline').html(div);
 }
 
-function rr(process_table, kind, processesm){
+function rr(process_table, quantum, processesm){
   var processestemp = [];
-  var quantum = $('#quantuminput').val();
+  var quantum =
   quantum = parseInt(quantum);
   var totalwt;
   var i = 0, j = 0, z = 0;
@@ -315,6 +369,11 @@ loop1:
     for(i = 0; i <= processesm.length - 1; i++){
       if(processesm[i][1] == 0){
         loop3:
+        if(processesm.length == 1)
+        {
+          finish = true;
+          break loop1;
+        }
         for(j = 0; j < i; j++){
           if(processesm[j][1] != 0){
             finish = false;
