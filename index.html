@@ -14,7 +14,6 @@
 </head>
 
 <body>
-  <center>Alejandro Aguilar M. A01228544 - Ismael Lizárraga G. A01630333 - Julio Cesar González U. A01229898</center>
   <div class="container">
     <section>
       <div class="jumbotron">
@@ -156,7 +155,7 @@
 
 <script>
 var processes = [];
-var process = [];
+var processescustom = [];
 var name,
     bt;
 
@@ -171,11 +170,11 @@ $(document).ready(function(){
   $('#save-process').on('click',function(){
     name = $('#name').val();
     bt = $('#st').val();
-    process = {
-          'name' : name,
-          'bt' : parseInt(bt),
-          'color' : getRandomColor()
-    };
+    process = [
+              name
+              ,parseInt(bt),
+              getRandomColor()
+              ];
     processes.push(process);
     $('#notify').empty();
     $('#notify').append('<div class="alert alert-success"><center><strong>Proceso ' + name + ' agregado</center></strong></div>');
@@ -198,17 +197,18 @@ $(document).ready(function(){
   });
 
   $('#get').on('click',function(){
+    processescustom = copy(processes);
     if($('#kind').val() === 'fcfs'){
       process_table.rows().remove().draw();
-      scheduler(process_table,'fcfs',JSON.parse(JSON.stringify(processes)));
+      scheduler(process_table,'fcfs',processescustom);
     }
     else if($('#kind').val() === 'sjf') {
       process_table.rows().remove().draw();
-      scheduler(process_table,'sjf',JSON.parse(JSON.stringify(processes)));
+      scheduler(process_table,'sjf',processescustom);
     }
     else if($('#kind').val() === 'rr') {
       process_table.rows().remove().draw();
-      rr(process_table,'rr',JSON.parse(JSON.stringify(processes)));
+      rr(process_table,'rr',processescustom);
     }
   });
 });
@@ -220,6 +220,16 @@ function getRandomColor() {
         color += letters[Math.floor(Math.random() * 16)];
     }
     return color;
+}
+
+function copy(o) {
+   var output, v, key;
+   output = Array.isArray(o) ? [] : {};
+   for (key in o) {
+       v = o[key];
+       output[key] = (typeof v === "object") ? copy(v) : v;
+   }
+   return output;
 }
 
 function scheduler(process_table, kind, processesm){
@@ -239,7 +249,7 @@ function scheduler(process_table, kind, processesm){
     do{
       swapped = false;
       for(i = 1; i <= processesm.length - 1; i++){
-        if(processesm[i - 1]['bt'] > processesm[i]['bt'] ){
+        if(processesm[i - 1][1] > processesm[i][1] ){
           tempross = processesm[i - 1];
           processesm[i - 1] = processesm[i];
           processesm[i] = tempross;
@@ -250,23 +260,23 @@ function scheduler(process_table, kind, processesm){
     while(swapped);
   }
 
-  processesm[0]['wt'] = 0;
-  processesm[0]['tat'] = processesm[0]['bt'];
-  total_pt = processesm[0]['bt'];
+  processesm[0][3] = 0;
+  processesm[0][4] = processesm[0][1];
+  total_pt = processesm[0][1];
   for(i = 1; i <= processesm.length - 1; i++){
-      processesm[i]['wt'] =  total_pt;
+      processesm[i][3] =  total_pt;
       twtn += total_pt;
-      processesm[i]['tat'] =  total_pt + processesm[i]['bt'];
-      ttatn += processesm[i]['tat'];
-      total_pt += processesm[i]['bt'];
+      processesm[i][4] =  total_pt + processesm[i][1];
+      ttatn += processesm[i][4];
+      total_pt += processesm[i][1];
   }
 
-  for(i = 0; i <= processesm.length - 1; i++){
-    tr = "<tr><td><center>" + processesm[i]['name'] + "</center></td><td><center>" + processesm[i]['wt'] + "</center></td><td><center>" + processesm[i]['tat'] + "</center></td><tr>";
-    twt += processesm[i]['wt'] + " + ";
-    ttat += processesm[i]['tat'] + " + ";
+  for(i = 0; i < processesm.length; i++){
+    tr = "<tr><td><center>" + processesm[i][0] + "</center></td><td><center>" + processesm[i][3] + "</center></td><td><center>" + processesm[i][4] + "</center></td><tr>";
+    twt += processesm[i][3] + " + ";
+    ttat += processesm[i][4] + " + ";
     process_table.row.add($(tr)).draw();
-    div += "<div class='progress-bar' style='width: " + Math.round(processesm[i]['bt']/total_pt * 100) +"%;background-color:"+ processesm[i]['color'] +"'><span>"+  processesm[i]['name'] +"</span></div>";
+    div += "<div class='progress-bar' style='width: " + Math.round(processesm[i][1]/total_pt * 100) +"%;background-color:"+ processesm[i][2] +"'><span>"+  processesm[i][0] +"</span></div>";
   }
 
   var twt = twt.slice(0, twt.length - 2);
@@ -274,9 +284,9 @@ function scheduler(process_table, kind, processesm){
   twt += " = " + twtn + " ms";
   ttat += " = " + ttatn + " ms";
   $('#twt').html(twt);
-  $('#awt').html(twtn + "/" + processesm.length + " = " + twtn/processesm.length + " ms");
+  $('#awt').html(twtn + "/" + processesm.length + " = " + (twtn/processesm.length).toFixed(2) + " ms");
   $('#ttat').html(ttat);
-  $('#atat').html(ttatn + "/" + processesm.length + " = " + ttatn/processesm.length + " ms");
+  $('#atat').html(ttatn + "/" + processesm.length + " = " + (ttatn/processesm.length).toFixed(2) + " ms");
   $('#trou').html(processesm.length + " jobs/" + total_pt + " sec = " + (processesm.length/total_pt).toFixed(2) + " jobs/sec");
   $('#timeline').html(div);
 }
@@ -286,7 +296,7 @@ function rr(process_table, kind, processesm){
   var quantum = $('#quantuminput').val();
   quantum = parseInt(quantum);
   var totalwt;
-  var i = 0, j = 0;
+  var i = 0, j = 0, z = 0;
   var tempross;
   var swapped;
   var total_pt;
@@ -303,51 +313,63 @@ loop1:
   while(!finish){
     loop2:
     for(i = 0; i <= processesm.length - 1; i++){
-      if(processesm[i]['bt'] == 0){
+      if(processesm[i][1] == 0){
         loop3:
-        for(j = 0; j <= processesm.length - 1; j++){
-          if(processesm[i]['bt'] != 0){
-            break loop3;
+        for(j = 0; j < i; j++){
+          if(processesm[j][1] != 0){
+            finish = false;
+            continue loop2;
+          }
+          else {
+            finish = true;
+          }
+        }
+        loop4:
+        for(j = i + 1; j < processesm.length; j++){
+          if(processesm[j][1] != 0){
+            finish = false;
+            continue loop2;
           }
           else {
             finish = true;
           }
         }
       }
-      else if(quantum < processesm[i]['bt']){
-        process = {
-          'name' : processesm[i]['name'],
-          'bt' : quantum,
-          'color' : processesm[i]['color']
-        };
+      else if(quantum < processesm[i][1]){
+        process = [
+          processesm[i][0],
+          quantum,
+          processesm[i][2]
+        ];
         totaltime += quantum;
-        processesm[i]['bt'] -= quantum;
+        processesm[i][1] -= quantum;
       }
-      else if(quantum >= processesm[i]['bt']){
-        process = {
-          'name' : processesm[i]['name'],
-          'bt' : processesm[i]['bt'],
-          'color' : processesm[i]['color']
-        };
-        totaltime += processesm[i]['bt'];
-        processesm[i]['wt'] = totaltime - processes[i]['bt'];
-        processesm[i]['tat'] = totaltime;
-        processesm[i]['bt'] = 0;
+      else if(quantum >= processesm[i][1]){
+        process = [
+          processesm[i][0],
+          processesm[i][1],
+          processesm[i][2]
+        ];
+        totaltime += processesm[i][1];
+        processesm[i][3] = totaltime - processes[i][1];
+        processesm[i][4] = totaltime;
+        processesm[i][1] = 0;
       }
+      if(!finish)
       processestemp.push(process);
     }
   }
 
-  for(i = 0; i <= processestemp.length - 1; i++){
-    div += "<div class='progress-bar' style='width: " + Math.round(processestemp[i]['bt']/totaltime * 100) +"%;background-color:"+ processestemp[i]['color'] +"'><span>"+  processestemp[i]['name'] +"</span></div>";
+  for(i = 0; i < processestemp.length; i++){
+    div += "<div class='progress-bar' style='width: " + Math.round(processestemp[i][1]/totaltime * 100) +"%;background-color:"+ processestemp[i][2] +"'><span>"+  processestemp[i][0] +"</span></div>";
   }
 
-  for(i = 0; i <= processes.length - 1; i++){
-    twt += processesm[i]['wt'] + " + ";
-    twtn += processesm[i]['wt'];
-    ttat += processesm[i]['tat'] + " + ";
-    ttatn += processesm[i]['tat'];
-    tr = "<tr><td><center>" + processesm[i]['name'] + "</center></td><td><center>" + processesm[i]['wt'] + "</center></td><td><center>" + processesm[i]['tat'] + "</center></td><tr>";
+  for(i = 0; i < processes.length; i++){
+    twt += processesm[i][3] + " + ";
+    twtn += processesm[i][3];
+    ttat += processesm[i][4] + " + ";
+    ttatn += processesm[i][4];
+    tr = "<tr><td><center>" + processesm[i][0] + "</center></td><td><center>" + processesm[i][3] + "</center></td><td><center>" + processesm[i][4] + "</center></td><tr>";
     process_table.row.add($(tr)).draw();
   }
 
@@ -356,9 +378,9 @@ loop1:
   twt += " = " + twtn + " ms";
   ttat += " = " + ttatn + " ms";
   $('#twt').html(twt);
-  $('#awt').html(twtn + "/" + processes.length + " = " + twtn/processes.length + " ms");
+  $('#awt').html(twtn + "/" + processes.length + " = " + (twtn/processes.length).toFixed(2) + " ms");
   $('#ttat').html(ttat);
-  $('#atat').html(ttatn + "/" + processes.length + " = " + ttatn/processes.length + " ms");
+  $('#atat').html(ttatn + "/" + processes.length + " = " + (ttatn/processes.length).toFixed(2) + " ms");
   $('#trou').html(processes.length + " jobs/" + totaltime + " sec = " + (processes.length/totaltime).toFixed(2) + " jobs/sec");
   $('#timeline').html(div);
 }
